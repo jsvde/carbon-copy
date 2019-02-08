@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Carbon Copy</title>
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:creator" content="@j_svde" />
+    <meta
+      property="og:url"
+      content="https://carbon-copy.now.sh/#https://pbs.twimg.com/media/DyweWdAVsAAI-1_.png"
+    />
+    <meta property="og:title" content="Carbon Copy" />
+    <meta
+      property="og:description"
+      content="Input a @carbon_app image containing source code, extract text and copy it"
+    />
+    <style>
+      html,
+      body {
+        background: rgb(18, 18, 18);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Ubuntu, "Helvetica Neue", sans-serif;
+        color: #fff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      h1,
+      h4 {
+        color: rgb(248, 232, 28);
+        text-align: center;
+      }
+
+      p {
+        text-align: center;
+        max-width: 600px;
+        margin: 20px auto;
+      }
+
+      .wrapper {
+        width: 80%;
+        display: flex;
+        margin: 0 auto;
+        flex-direction: column;
+      }
+
+      .box {
+        margin: 0 auto;
+        width: 80%;
+        max-width: 1200px;
+      }
+      #target {
+        float: left;
+      }
+
+      #code-wrapper {
+        float: right;
+      }
+
+      .box > * {
+        /* flex: 1 1 0; */
+        /* flex-basis: 100%; */
+        width: calc(50% - 20px);
+        padding: 10px;
+        height: 100%;
+        min-height: 350px;
+      }
+
+      @media (max-width: 700px) {
+        .wrapper {
+          width: 100%;
+        }
+        .box {
+          flex-direction: column-reverse;
+        }
+        .box > * {
+          width: 100%;
+        }
+      }
+
+      form {
+        margin: 0 auto;
+        display: flex;
+        width: 300px;
+        border-radius: 5px;
+        border: 1px solid #fff;
+      }
+
+      a {
+        color: rgb(248, 232, 28);
+      }
+
+      form input {
+        flex: 1;
+        outline: none;
+        border: 0;
+        background: transparent;
+        padding: 10px;
+        color: #fff;
+      }
+
+      form button,
+      button {
+        border: 0;
+        border-left: 1px solid #fff;
+        background: transparent;
+        color: #fff;
+        padding: 5px 20px;
+        cursor: pointer;
+      }
+
+      #demo {
+        margin: 0 auto;
+        border: 1px solid #fff;
+        border-radius: 5px;
+        margin: 0 auto;
+        display: block;
+      }
+
+      img {
+        max-width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Carbon Copy</h1>
+    <p>
+      Got some beautiful
+      <a href="https://carbon.now.sh" rel="noopener noreferrer">carbon</a> image
+      from twitter? Do you want the code on said carbon image? Don't you just
+      hate it to write something off an image?
+    </p>
+    <p>
+      Give me a link to a tweet or a tweeted image and I give you its text you
+      can copy.
+    </p>
+    <button id="demo">Try the demo</button>
+    <p>
+      [Super early prototype based on twitter api, carbon embeds and
+      tesseract.js... not really working... yet!]
+    </p>
+    <form id="form">
+      <input
+        id="input"
+        type="text"
+        placeholder="Url of tweet or tweeted image"
+      />
+      <button type="submit">Load</button>
+    </form>
+    <div class="box">
+      <div id="target">
+        <pre>loading image</pre>
+      </div>
+      <div id="code-wrapper">
+        <pre id="code">
+        [code will display here]
+        </pre>
+      </div>
+    </div>
+
+    <script>
+      window.twttr = (function(d, s, id) {
+        var js,
+          fjs = d.getElementsByTagName(s)[0],
+          t = window.twttr || {};
+        if (d.getElementById(id)) return t;
+        js = d.createElement(s);
+        js.id = id;
+        js.src = "https://platform.twitter.com/widgets.js";
+        fjs.parentNode.insertBefore(js, fjs);
+
+        t._e = [];
+        t.ready = function(f) {
+          t._e.push(f);
+        };
+
+        return t;
+      })(document, "script", "twitter-wjs");
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/gh/naptha/tesseract.js@v1.0.14/dist/tesseract.min.js"></script>
+    <script>
+      const target = document.getElementById("target");
+      const code = document.getElementById("code");
+      const codeWrapper = document.getElementById("code-wrapper");
+      const input = document.getElementById("input");
+      const form = document.getElementById("form");
+
+      const demo = document.getElementById("demo");
+      demo.addEventListener("click", () => {
+        const example = "https://twitter.com/j_svde/status/1093590970048962561";
+        input.value = example;
+        processInput(example);
+      });
+
+      function processImage(imgPath, render = false) {
+        const img = new Image();
+        img.onload = function() {
+          if (render) {
+            target.innerHTML = `<img id="carbon-image" src="${imgPath}" />`;
+          }
+          const imgEl = document.getElementById("carbon-image");
+          Tesseract.recognize(img).then(function(result) {
+            carbon_embed(result.text);
+          });
+        };
+        img.setAttribute("crossOrigin", "");
+        img.src = imgPath;
+      }
+
+      const processInput = async src => {
+        console.log(src);
+        const hash = "#" + src;
+        target.innerHTML = "<p>Loading...</p>";
+        codeWrapper.innerHTML = '<pre id="code">processing...</pre>';
+        // is tweet or img?
+        if (src.includes("twitter.com") && src.includes("/status/")) {
+          window.location.hash = hash;
+          handleTweet(src);
+        } else if (
+          src.includes("twimg.com") &&
+          (src.includes(".png") || src.includes(".jpg"))
+        ) {
+          handleImage(src);
+          window.location.hash = hash;
+        } else {
+          codeWrapper.innerHTML = "<pre>[No Code]</pre>";
+          target.innerHTML = "<p>Not a tweet or tweeted image</p>";
+        }
+      };
+
+      const handleTweet = async tweet => {
+        // console.log("IS TWEET");
+        const [unused, id] = tweet.split("/status/");
+        const data = await fetch(`https://carbon-copy.now.sh/api/${id}`).then(
+          res => res.json()
+        );
+        const { embed, status } = data;
+        target.innerHTML = embed.html;
+        twttr.widgets.load();
+
+        if (
+          status &&
+          status.extended_entities &&
+          status.extended_entities.media
+        ) {
+          const media = status.extended_entities.media;
+          codeWrapper.innerHTML = "";
+          media.forEach(el => {
+            if (el.ext_alt_text) {
+              // has alt text -> likely code!
+              // do carbon insertion;
+              carbon_embed(el.ext_alt_text);
+            } else {
+              // process image with tesseract;
+
+              processImage(el.media_url);
+            }
+          });
+        }
+      };
+
+      const handleImage = async url => {
+        // console.log("IS IMG");
+        codeWrapper.innerHTML = "";
+        processImage(url, true);
+      };
+
+      // process on form submit and page load
+      form.addEventListener("submit", e => {
+        e.preventDefault();
+        processInput(input.value);
+      });
+      (() => {
+        const { hash } = window.location;
+        if (hash) {
+          const src = hash.substr(1, hash.length);
+          processInput(src);
+        } else {
+          target.innerHTML = "<pre>Try a tweet or tweeted image!</pre>";
+        }
+      })();
+
+      const carbon_embed = raw_code => {
+        const encoded = encodeURIComponent(raw_code);
+        const markup = `<iframe
+  src="https://carbon.now.sh/embed/?bg=rgba(248%2C231%2C28%2C1)&t=blackboard&wt=none&l=javascript&ds=false&dsyoff=20px&dsblur=68px&wc=true&wa=true&pv=56px&ph=56px&ln=false&fm=Ubuntu%20Mono&fs=13.5px&lh=152%25&si=false&code=${encoded}&es=2x&wm=false"
+  style="width:100%; height:100%; min-height:500px; border:0; overflow:hidden;"
+  sandbox="allow-scripts allow-same-origin">
+</iframe>`;
+        console.log(codeWrapper.innerHTML + markup);
+        codeWrapper.innerHTML = markup + codeWrapper.innerHTML;
+      };
+    </script>
+  </body>
+</html>

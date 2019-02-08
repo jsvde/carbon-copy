@@ -1,0 +1,16 @@
+{
+  "name": "function",
+  "version": "1.0.0",
+  "main": "function.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "micro -l tcp://localhost:3001",
+    "dev": "micro-dev -l tcp://localhost:3001"
+  },
+  "dependencies": {
+    "micro": "^9.3.3",
+    "micro-dev": "^3.0.0",
+    "now-env": "^3.1.0",
+    "twitter": "^1.7.1"
+  }
+}
